@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wardrobe</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f5f5f0;
+      color: #222;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #222;
+      color: white;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: 1px; }
+
+    /* Upload panel */
+    .upload-panel {
+      background: white;
+      border-bottom: 1px solid #ddd;
+      padding: 20px 32px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .upload-panel label { font-size: 0.8rem; font-weight: 600; color: #555; display: block; margin-bottom: 4px; }
+
+    .upload-panel input[type="text"],
+    .upload-panel select {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      background: #fafafa;
+    }
+
+    .upload-panel input[type="text"] { width: 200px; }
+
+    .file-label {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.15s;
+    }
+    .file-label:hover { background: #e2e2e2; }
+    #fileInput { display: none; }
+
+    .btn-upload {
+      padding: 9px 24px;
+      background: #222;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-upload:hover { background: #444; }
+    .btn-upload:disabled { background: #aaa; cursor: not-allowed; }
+
+    #fileName { font-size: 0.85rem; color: #666; align-self: center; }
+
+    /* Category tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 16px 32px 0;
+      border-bottom: 2px solid #ddd;
+      background: #f5f5f0;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 10px 22px;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      background: #e8e8e4;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #555;
+      transition: background 0.15s, color 0.15s;
+      position: relative;
+    }
+
+    .tab:hover { background: #d8d8d4; }
+
+    .tab.active {
+      background: white;
+      color: #222;
+      font-weight: 700;
+      border-color: #ddd;
+      border-bottom: 2px solid white;
+      margin-bottom: -2px;
+    }
+
+    .tab .count {
+      display: inline-block;
+      background: #aaa;
+      color: white;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      padding: 1px 7px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .tab.active .count { background: #222; }
+
+    /* Grid */
+    .grid-container {
+      padding: 28px 32px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #aaa;
+      padding: 60px 0;
+      font-size: 1.1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+    }
+
+    .card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.13); }
+
+    .card img {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-info {
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-delete {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(0,0,0,0.55);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+
+    .card:hover .btn-delete { display: flex; }
+    .btn-delete:hover { background: rgba(200,0,0,0.8); }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #222;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>My Wardrobe</h1>
+</header>
+
+<div class="upload-panel">
+  <div>
+    <label for="nameInput">Item name</label>
+    <input type="text" id="nameInput" placeholder="e.g. Blue jeans" maxlength="40">
+  </div>
+  <div>
+    <label for="categorySelect">Category</label>
+    <select id="categorySelect">
+      <option value="Tops">Tops</option>
+      <option value="Bottoms">Bottoms</option>
+      <option value="Shoes">Shoes</option>
+      <option value="Outerwear">Outerwear</option>
+      <option value="Accessories">Accessories</option>
+    </select>
+  </div>
+  <div>
+    <label>Photo</label>
+    <label class="file-label" for="fileInput">Choose image</label>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+  <span id="fileName">No file chosen</span>
+  <button class="btn-upload" id="uploadBtn" disabled>Add to wardrobe</button>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="grid-container">
+  <div id="gridArea"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const CATEGORIES = ['All', 'Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  let items = [];
+  let activeCategory = 'All';
+  let pendingFile = null;
+
+  const fileInput = document.getElementById('fileInput');
+  const nameInput = document.getElementById('nameInput');
+  const categorySelect = document.getElementById('categorySelect');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const fileNameSpan = document.getElementById('fileName');
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (file) {
+      pendingFile = file;
+      fileNameSpan.textContent = file.name.length > 24 ? file.name.slice(0, 22) + '…' : file.name;
+      uploadBtn.disabled = false;
+    }
+  });
+
+  uploadBtn.addEventListener('click', () => {
+    if (!pendingFile) return;
+    const name = nameInput.value.trim() || pendingFile.name.replace(/\.[^.]+$/, '');
+    const category = categorySelect.value;
+    const url = URL.createObjectURL(pendingFile);
+
+    items.push({ id: Date.now(), name, category, url });
+
+    // Reset
+    fileInput.value = '';
+    nameInput.value = '';
+    pendingFile = null;
+    fileNameSpan.textContent = 'No file chosen';
+    uploadBtn.disabled = true;
+
+    renderTabs();
+    renderGrid();
+    showToast(`"${name}" added to ${category}`);
+  });
+
+  function deleteItem(id) {
+    items = items.filter(i => i.id !== id);
+    renderTabs();
+    renderGrid();
+  }
+
+  function renderTabs() {
+    const tabs = document.getElementById('tabs');
+    tabs.innerHTML = '';
+    CATEGORIES.forEach(cat => {
+      const count = cat === 'All' ? items.length : items.filter(i => i.category === cat).length;
+      const btn = document.createElement('button');
+      btn.className = 'tab' + (cat === activeCategory ? ' active' : '');
+      btn.innerHTML = `${cat} <span class="count">${count}</span>`;
+      btn.addEventListener('click', () => {
+        activeCategory = cat;
+        renderTabs();
+        renderGrid();
+      });
+      tabs.appendChild(btn);
+    });
+  }
+
+  function renderGrid() {
+    const area = document.getElementById('gridArea');
+    const filtered = activeCategory === 'All' ? items : items.filter(i => i.category === activeCategory);
+
+    if (filtered.length === 0) {
+      area.innerHTML = `<div class="empty-state">No items here yet. Upload some clothes!</div>`;
+      return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+
+    filtered.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <img src="${item.url}" alt="${item.name}">
+        <div class="card-info" title="${item.name}">${item.name}</div>
+        <button class="btn-delete" title="Remove">&#x2715;</button>
+      `;
+      card.querySelector('.btn-delete').addEventListener('click', () => deleteItem(item.id));
+      grid.appendChild(card);
+    });
+
+    area.innerHTML = '';
+    area.appendChild(grid);
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // Init
+  renderTabs();
+  renderGrid();
+</script>
+</body>
+</html>
