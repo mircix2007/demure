@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>DEMURE - Login</title>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/ui/6.1.0/firebase-ui-auth.js"></script>
+  <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.1.0/firebase-ui-auth.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 flex items-center justify-center h-screen">
+
+<div class="bg-white p-8 md:p-12 rounded-3xl shadow-2xl border border-slate-100 max-w-sm w-full">
+  <h1 class="text-2xl font-black text-slate-800 mb-6 text-center">DEMURE</h1>
+  <div id="firebaseui-auth-container"></div>
+</div>
+
+<script>
+  // 1. Initialize Firebase (Replace with your actual keys)
+const firebaseConfig = {
+  apiKey: "AIzaSyB5cNC19bMoajV93DRbePpOlHs2VnL1cYE",
+  authDomain: "digital-wardrobe-a284e.firebaseapp.com",
+  projectId: "digital-wardrobe-a284e",
+  storageBucket: "digital-wardrobe-a284e.firebasestorage.app",
+  messagingSenderId: "297791813083",
+  appId: "1:297791813083:web:e5c4331ff962b304a7a3fe",
+  measurementId: "G-0GESXHPJP5"
+};
+  firebase.initializeApp(firebaseConfig);
+
+  // 2. Configure FirebaseUI
+  const uiConfig = {
+      signInSuccessUrl: '/', // Redirect after success
+      signInFlow: 'popup',
+      signInOptions: [
+          {
+              provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
+              // This flag enables password recovery and existing account detection
+              signInMethod: firebase.auth.EmailAuthProvider.EMAIL_PASSWORD_SIGN_IN_METHOD,
+              requireDisplayName: true
+          }
+      ],
+      callbacks: {
+          signInSuccessWithAuthResult: function(authResult, redirectUrl) {
+              // Send UID to backend to establish Spring Session
+              fetch('/set-session', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ uid: authResult.user.uid })
+              }).then(() => {
+                  window.location.href = '/';
+              });
+              return false; // Prevent default redirect
+          }
+      }
+  };
+
+  // 3. Start the UI
+  const ui = new firebaseui.auth.AuthUI(firebase.auth());
+  ui.start('#firebaseui-auth-container', uiConfig);
+</script>
+</body>
+</html>

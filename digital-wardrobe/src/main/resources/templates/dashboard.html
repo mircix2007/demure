@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>DEMURE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .wardrobe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+<nav class="bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b p-4">
+  <div class="container mx-auto flex justify-between items-center">
+    <h1 class="text-xl font-black italic text-indigo-600">DEMURE</h1>
+    <div class="flex items-center gap-4">
+      <button onclick="document.getElementById('uploadModal').showModal()"
+              class="bg-slate-900 text-white px-6 py-2.5 rounded-2xl font-bold hover:bg-indigo-600 transition-colors">
+        + Add Item
+      </button>
+      <a href="/logout" class="text-sm font-bold text-slate-400 hover:text-red-500">Sign Out</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container mx-auto p-6 md:p-10">
+
+  <div class="flex gap-3 mb-10 overflow-x-auto pb-4 no-scrollbar">
+    <a th:each="cat : ${ {'All', 'Tops', 'Pants', 'Shirts', 'Accessories'} }"
+       th:href="@{/(cat=${cat})}"
+       th:text="${cat}"
+       th:classappend="${selectedCat == cat} ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 border'"
+       class="px-5 py-2 rounded-full border transition-all font-medium whitespace-nowrap">
+    </a>
+  </div>
+
+  <form th:action="@{/delete-selected}" method="post">
+
+    <div id="bulkActions" class="hidden mb-6 p-4 bg-red-50 rounded-2xl flex justify-between items-center border border-red-100">
+      <span class="text-red-700 font-bold" id="itemCount">0 items selected</span>
+      <button type="submit" class="bg-red-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-700 transition-all">
+        Delete Selected
+      </button>
+    </div>
+
+    <div class="wardrobe-grid">
+      <div th:each="item : ${items}" class="bg-white rounded-3xl border border-slate-100 p-3 hover:shadow-lg transition-all relative group">
+        <div class="absolute top-5 left-5 z-10">
+          <input type="checkbox" name="selectedIds" th:value="${item.id}"
+                 onchange="updateBulkActions()"
+                 class="w-6 h-6 rounded border-2 border-indigo-200 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+        </div>
+
+        <div class="aspect-square bg-slate-100 rounded-2xl overflow-hidden p-2">
+          <img th:src="${item.imageUrl}" class="w-full h-full object-contain">
+        </div>
+
+        <div class="px-2 mt-3">
+          <h3 class="font-bold text-slate-800 truncate" th:text="${item.name}"></h3>
+          <p class="text-[10px] uppercase font-bold text-indigo-400" th:text="${item.category}"></p>
+        </div>
+      </div>
+
+      <div th:if="${items.empty}" class="col-span-full py-20 text-center text-slate-400">
+        <p>No items found in this category.</p>
+      </div>
+    </div>
+  </form>
+</main>
+
+<dialog id="uploadModal" class="rounded-3xl shadow-2xl p-0 w-full max-w-md backdrop:bg-slate-900/40">
+  <form id="uploadForm" enctype="multipart/form-data" class="p-8">
+    <h2 class="text-2xl font-black mb-6">New Item</h2>
+    <div class="space-y-4">
+      <input type="text" name="name" placeholder="Item Name" class="w-full bg-slate-50 border rounded-2xl p-4" required>
+      <select name="category" class="w-full bg-slate-50 border rounded-2xl p-4">
+        <option>Tops</option><option>Pants</option><option>Shirts</option><option>Accessories</option>
+      </select>
+      <input type="file" name="file" id="fileInput" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-indigo-50" required>
+    </div>
+    <button type="button" id="saveBtn" onclick="uploadItemAsync()"
+            class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold mt-8 hover:bg-indigo-700">
+      Save to Wardrobe
+    </button>
+  </form>
+</dialog>
+
+<script>
+  function updateBulkActions() {
+      const checked = document.querySelectorAll('input[name="selectedIds"]:checked').length;
+      const bar = document.getElementById('bulkActions');
+      bar.style.display = checked > 0 ? 'flex' : 'none';
+      document.getElementById('itemCount').innerText = checked + ' items selected';
+  }
+  async function uploadItemAsync() {
+    const form = document.getElementById('uploadForm');
+    const btn = document.getElementById('saveBtn');
+    const formData = new FormData(form);
+
+    // UI Feedback
+    btn.disabled = true;
+    btn.innerText = 'Uploading...';
+
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const newItem = await response.json(); // We expect the server to send back the saved item
+
+            // 1. Create the new HTML card
+            const grid = document.querySelector('.wardrobe-grid');
+            const cardHtml = `
+                <div class="bg-white rounded-3xl border border-slate-100 p-3 hover:shadow-lg transition-all relative group animate-fade-in">
+                    <div class="absolute top-5 left-5 z-10">
+                        <input type="checkbox" name="selectedIds" value="${newItem.id}" onchange="updateBulkActions()" class="w-6 h-6 rounded border-2 border-indigo-200 text-indigo-600">
+                    </div>
+                    <div class="aspect-square bg-slate-100 rounded-2xl overflow-hidden p-2">
+                        <img src="${newItem.imageUrl}" class="w-full h-full object-contain">
+                    </div>
+                    <div class="px-2 mt-3">
+                        <h3 class="font-bold text-slate-800 truncate">${newItem.name}</h3>
+                        <p class="text-[10px] uppercase font-bold text-indigo-400">${newItem.category}</p>
+                    </div>
+                </div>`;
+
+            // 2. Add to grid and close modal
+            grid.insertAdjacentHTML('afterbegin', cardHtml);
+            form.reset();
+            document.getElementById('uploadModal').close();
+        }
+    } catch (error) {
+        alert("Upload failed. Please try again.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Save to Wardrobe';
+    }
+}
+</script>
+</body>
+</html>
